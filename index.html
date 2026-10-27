@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema de Parqueadero</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background-color: #f4f6f9;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button.btn-salida {
+            background-color: #dc3545;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Control de Parqueadero</h1>
+
+    <!-- Formulario de Ingreso -->
+    <div class="card">
+        <h2>Registrar Vehículo</h2>
+        <form id="form-ingreso">
+            <input type="text" id="placa" placeholder="Placa (ej: PBX-1234)" required />
+            <button type="submit">Ingresar</button>
+        </form>
+    </div>
+
+    <!-- Tabla de Resultados -->
+    <div class="card">
+        <h2>Historial de Vehículos</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Placa</th>
+                    <th>Fecha</th>
+                    <th>Hora Llegada</th>
+                    <th>Hora Salida</th>
+                    <th>Duración (min)</th>
+                    <th>Monto ($)</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-body"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api/vehiculos';
+
+        async function cargarVehiculos() {
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            const tbody = document.getElementById('tabla-body');
+            tbody.innerHTML = '';
+
+            data.forEach(v => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+          <td>${v.id}</td>
+          <td><strong>${v.placa}</strong></td>
+          <td>${v.fecha}</td>
+          <td>${v.horaLlegada}</td>
+          <td>${v.horaSalida || '-'}</td>
+          <td>${v.duracionMinutos !== null ? v.duracionMinutos : '-'}</td>
+          <td>${v.monto !== null ? '$' + v.monto.toFixed(2) : '-'}</td>
+          <td>
+            ${v.activo ? `<button class="btn-salida" onclick="registrarSalida(${v.id})">Marcar Salida</button>` : '<span style="color:gray;">Completado</span>'}
+          </td>
+        `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('form-ingreso').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const placa = document.getElementById('placa').value;
+
+            await fetch(`${API_URL}/ingreso`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ placa })
+            });
+
+            document.getElementById('placa').value = '';
+            cargarVehiculos();
+        });
+
+        async function registrarSalida(id) {
+            await fetch(`${API_URL}/salida/${id}`, { method: 'POST' });
+            cargarVehiculos();
+        }
+
+        cargarVehiculos();
+    </script>
+</body>
+
+</html>
